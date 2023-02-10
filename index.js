@@ -1,10 +1,9 @@
 const express = require("express");
 const app = express();
+const http = require("http").Server(app);
 
-const server = app.listen(5000 , () =>
-console.log("server running => http://localhost:5000"));
 
-const io = require("socket.io")(server, { cors: { origin: "*" } });
+const io = require("socket.io")(http);
 
 
 io.on("connection", (socket) => {
@@ -20,3 +19,6 @@ io.on("connection", (socket) => {
     })
 
 });
+
+
+http.listen(5000, () => console.log("server running on port 5000"));
