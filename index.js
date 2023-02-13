@@ -61,7 +61,6 @@ io.on("connection", (socket) => {
     })
 
     socket.on("send_move", (data) => {
-      //console.log(countClientsInRoom(data))
       socket.to(data.roomCode).emit("recieve_move",data);
     })
 
