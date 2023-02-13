@@ -45,16 +45,19 @@ const startGameIfFull = (roomCode, socket) => {
   }
 }
 
+const opponentLeft = (roomCode,socket) => {
+  socket.to(roomCode).emit("opponent_left",roomCode);
+}
 
 io.on("connection", (socket) => {
-    console.log("User connected");
+  console.log("CONNECTED user: " + socket.id);
 
     socket.on("join_room", (roomCode) => {
       socket.join(roomCode);
       addRoomCount(roomCode);
       setSocketIDtoRoomCode(socket.id,roomCode);
       startGameIfFull(roomCode,socket);
-      //console.log("Joined room:" + data + ", users in room: " + countClientsInRoom(data) + ", socket ID: " + socket.id)
+      console.log("JOINED room:" + roomCode + ", users in room: " + countClientsInRoom(roomCode) + ", socket ID: " + socket.id)
     })
 
     socket.on("send_move", (data) => {
@@ -62,9 +65,23 @@ io.on("connection", (socket) => {
       socket.to(data.roomCode).emit("recieve_move",data);
     })
 
+    socket.on("leave_room", (roomCode) => {
+      if(roomCode !== null){
+
+        socket.leave(roomCode);
+        removeRoomCountBySocketID(socket.id);
+        console.log("LEFT room:" + roomCode + ", users in room: " + countClientsInRoom(roomCode) + ", socket ID: " + socket.id)
+
+        if(countClientsInRoom(roomCode) == 1){
+          opponentLeft(roomCode,socket);
+        }
+      }
+    })
+
 
     socket.on("disconnect", () => {
       removeRoomCountBySocketID(socket.id);
+      console.log("DISCONNETED user: " + socket.id);
       //console.log("Removing user from room: " + socketIdRoomCodeMap.get(socket.id));
      // console.log("Left room, users in room: "+ countClientsInRoom(socketIdRoomCodeMap.get(socket.id)));
     })
