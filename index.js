@@ -29,6 +29,15 @@ const addRoomCount = (room) => {
 const removeRoomCountBySocketID = (id) => {
   var room = socketIdRoomCodeMap.get(id);
   roomCodeUserCountMap.set(room,roomCodeUserCountMap.get(room) - 1);
+  if(roomCodeUserCountMap.get(room) == 0){
+    roomCodeUserCountMap.delete(room);
+  }
+}
+
+const removeSocketIDfromRoomCode = (id) => {
+  if(socketIdRoomCodeMap.has(id)){
+    socketIdRoomCodeMap.delete(id);
+  }
 }
 
 const setSocketIDtoRoomCode = (id,room) => {
@@ -37,6 +46,7 @@ const setSocketIDtoRoomCode = (id,room) => {
   }
   socketIdRoomCodeMap.set(id,room);
 }
+
 
 const startGameIfFull = (roomCode, socket) => {
   if(countClientsInRoom(roomCode) == 2){
@@ -47,6 +57,25 @@ const startGameIfFull = (roomCode, socket) => {
 
 const opponentLeft = (roomCode,socket) => {
   socket.to(roomCode).emit("opponent_left",roomCode);
+}
+
+const getRoomDetails = () => {
+  let map = new Map();
+  roomCodeUserCountMap.forEach((userCount,roomCode1) => {
+    let userList = [];
+    socketIdRoomCodeMap.forEach((roomCode2,socketID) => {
+      if(roomCode2 == roomCode1){
+        userList.push({
+          socketID: socketID,
+        })
+      }
+    })
+    map.set(roomCode1,{
+      userList: userList,
+      numberOfUsers : userList.length
+    })
+  })
+  return map;
 }
 
 io.on("connection", (socket) => {
@@ -69,6 +98,7 @@ io.on("connection", (socket) => {
 
         socket.leave(roomCode);
         removeRoomCountBySocketID(socket.id);
+        removeSocketIDfromRoomCode(socket.id);
         console.log("LEFT room:" + roomCode + ", users in room: " + countClientsInRoom(roomCode) + ", socket ID: " + socket.id)
 
         if(countClientsInRoom(roomCode) == 1){
@@ -77,9 +107,16 @@ io.on("connection", (socket) => {
       }
     })
 
+    socket.on("get_rooms", () => {
+      const rd = getRoomDetails();
+      //console.log(JSON.stringify([...rd]))
+      socket.emit("recieve_rooms", JSON.stringify([...rd]));
+    })
 
     socket.on("disconnect", () => {
+      socket.leave(socketIdRoomCodeMap.get(socket.id));
       removeRoomCountBySocketID(socket.id);
+      removeSocketIDfromRoomCode(socket.id);
       console.log("DISCONNETED user: " + socket.id);
       //console.log("Removing user from room: " + socketIdRoomCodeMap.get(socket.id));
      // console.log("Left room, users in room: "+ countClientsInRoom(socketIdRoomCodeMap.get(socket.id)));
